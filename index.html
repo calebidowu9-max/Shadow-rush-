@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadowRush</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#070b1c;color:white;font-family:Arial,sans-serif;text-align:center}
+header{padding:18px;background:#101936}
+h1{margin:0;color:#58f6ff;letter-spacing:3px}
+#stats{display:flex;justify-content:space-around;padding:15px;font-weight:bold}
+canvas{display:block;width:100%;max-width:500px;margin:auto;background:#101936;touch-action:manipulation}
+#controls{padding:18px}
+button{background:#17294e;color:#fff;border:2px solid #58f6ff;border-radius:12px;padding:14px 20px;font-size:17px;margin:5px}
+#message{color:#a8faff;padding:10px}
+</style>
+</head>
+<body>
+<header>
+<h1>SHADOWRUSH</h1>
+<p>RUN THE FUTURE ⚡</p>
+</header>
+<div id="stats">
+<span>🪙 Coins: <b id="coins">0</b></span>
+<span>🏆 Score: <b id="score">0</b></span>
+</div>
+<canvas id="game" width="400" height="560"></canvas>
+<div id="message">Tap START, then tap the game to jump!</div>
+<div id="controls">
+<button id="start">▶ START</button>
+<button id="jump">⬆ JUMP</button>
+<button id="power">⚡ SHIELD</button>
+</div>
+<script>
+const c=document.getElementById('game');
+const ctx=c.getContext('2d');
+const coinsEl=document.getElementById('coins');
+const scoreEl=document.getElementById('score');
+const msg=document.getElementById('message');
+let running=false,score=0,coins=0,speed=4,frames=0,shield=0;
+let player={x:180,y:440,w:38,h:48,vy:0,ground:440};
+let obstacles=[],gems=[];
+function reset(){
+score=0;coins=0;speed=4;frames=0;shield=0;
+player.y=440;player.vy=0;obstacles=[];gems=[];
+coinsEl.textContent=0;scoreEl.textContent=0;
+running=true;msg.textContent='Run, jump and collect energy!';
+requestAnimationFrame(loop);
+}
+function jump(){
+if(!running){return}
+if(player.y>=player.ground)player.vy=-13;
+}
+function draw(){
+ctx.clearRect(0,0,400,560);
+let grd=ctx.createLinearGradient(0,0,0,560);
+grd.addColorStop(0,'#101936');grd.addColorStop(1,'#32165c');
+ctx.fillStyle=grd;ctx.fillRect(0,0,400,560);
+ctx.strokeStyle='#244f91';ctx.lineWidth=2;
+for(let i=0;i<10;i++){
+let y=(i*65+(frames*speed)%65);
+ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(400,y);ctx.stroke();
+}
+ctx.fillStyle='#17294e';
+for(let i=0;i<8;i++){
+let x=i*55;
+let h=50+(i*37)%100;
+ctx.fillRect(x,390-h,35,h);
+}
+ctx.fillStyle='#58f6ff';
+ctx.fillRect(40,490,320,4);
+obstacles.forEach(o=>{
+ctx.fillStyle='#ff477e';ctx.fillRect(o.x,o.y,o.w,o.h);
+ctx.fillStyle='#ffb2d0';ctx.fillRect(o.x+5,o.y+5,o.w-10,5);
+});
+gems.forEach(g=>{
+ctx.fillStyle='#ffe66d';ctx.beginPath();
+ctx.arc(g.x,g.y,9,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#fff6b5';ctx.fillRect(g.x-2,g.y-6,4,12);
+});
+ctx.fillStyle=shield>0?'#ffe66d':'#58f6ff';
+ctx.fillRect(player.x,player.y,player.w,player.h);
+ctx.fillStyle='#101936';
+ctx.fillRect(player.x+23,player.y+9,7,7);
+ctx.fillStyle='#fff';
+ctx.fillRect(player.x+24,player.y+10,3,3);
+ctx.fillStyle='#b6ffff';
+ctx.fillRect(player.x+7,player.y+player.h-5,8,9);
+ctx.fillRect(player.x+25,player.y+player.h-5,8,9);
+if(!running){
+ctx.fillStyle='#fff';ctx.font='bold 24px Arial';
+ctx.textAlign='center';ctx.fillText('SHADOWRUSH',200,210);
+ctx.font='16px Arial';ctx.fillText('Your future run begins here',200,240);
+}
+}
+function loop(){
+if(!running){draw();return}
+frames++;score++;speed=4+Math.min(score/500,4);
+player.y+=player.vy;player.vy+=0.65;
+if(player.y>player.ground){player.y=player.ground;player.vy=0}
+if(shield>0)shield--;
+if(frames%65===0)obstacles.push({x:410,y:455,w:28+Math.random()*20,h:35+Math.random()*20});
+if(frames%48===0)gems.push({x:420,y:380-Math.random()*100});
+obstacles.forEach(o=>o.x-=speed);
+gems.forEach(g=>g.x-=speed);
+obstacles=obstacles.filter(o=>o.x+o.w>0);
+gems=gems.filter(g=>g.x>-20);
+for(const o of obstacles){
+if(player.x<o.x+o.w&&player.x+player.w>o.x&&player.y<o.y+o.h&&player.y+player.h>o.y){
+if(shield===0){running=false;msg.textContent='Run ended! Tap START to try again.';draw();return}
+}
+}
+gems=gems.filter(g=>{
+if(Math.hypot(player.x+player.w/2-g.x,player.y+player.h/2-g.y)<30){
+coins++;coinsEl.textContent=coins;return false
+}return true
+});
+scoreEl.textContent=score;
+draw();requestAnimationFrame(loop);
+}
+document.getElementById('start').onclick=reset;
+document.getElementById('jump').onclick=jump;
+document.getElementById('power').onclick=()=>{if(running)shield=100;msg.textContent='⚡ Shield activated!'};
+c.addEventListener('pointerdown',jump);
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp')jump()});
+draw();
+</script>
+</body>
+</html>
